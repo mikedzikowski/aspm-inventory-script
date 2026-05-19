@@ -1,0 +1,6 @@
+web-app-server-01
+api-gateway-prod
+database-server-main
+frontend-load-balancer
+backend-services-cluster
+monitoring-dashboard-vm
