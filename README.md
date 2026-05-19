@@ -1,0 +1,1 @@
+# aspm-inventory-script
