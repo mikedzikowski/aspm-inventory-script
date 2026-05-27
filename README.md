@@ -33,7 +33,7 @@ export FALCON_CLIENT_SECRET="your_client_secret"
 
 ## 🚀 Usage Examples
 
-### 1. Discover ALL Hosts (Recommended)
+### 1. Discover ALL Hosts
 ```bash
 python3 aspm_host_iterator.py
 ```
