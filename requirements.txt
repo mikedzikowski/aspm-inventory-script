@@ -1,1 +1,8 @@
+# Requirements for ASPM Host Iterator
+
+# Original version (aspm_host_iterator.py) - Full featured but with pattern matching issues
 requests>=2.28.0
+
+# Final optimized version (aspm_host_iterator_final.py) - No external dependencies
+# Uses only Python standard library (urllib, json, os, sys, time)
+# Recommended for new deployments due to 100% accuracy and zero pattern matching

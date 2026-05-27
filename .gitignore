@@ -1,0 +1,29 @@
+# Directories to ignore
+docs/
+results/
+tests/
+
+# Results from script execution
+*.json
+
+# Temporary files
+*.tmp
+*.log
+
+# IDE files
+.vscode/
+.idea/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+venv/
+env/
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
