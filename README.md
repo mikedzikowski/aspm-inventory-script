@@ -31,7 +31,7 @@ export FALCON_CLIENT_ID="your_client_id"
 export FALCON_CLIENT_SECRET="your_client_secret"
 ```
 
-## 🚀 Usage Examples
+## 🚀 Usage
 
 ### 1. Discover ALL Hosts
 ```bash
