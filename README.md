@@ -19,7 +19,26 @@ Discover and correlate ALL hosts from CrowdStrike ASPM with complete Falcon inte
 
 ### Prerequisites
 - Python 3.7+ (uses standard library only)
-- CrowdStrike API credentials with ASPM access
+- CrowdStrike API credentials with required scopes
+
+### API Scopes Required
+
+When creating your CrowdStrike API Client ID, ensure it has the following scopes:
+
+**Required Scopes:**
+- `aspm-viewer:read` - Access to ASPM query endpoints for service discovery
+- `devices:read` - Access to Falcon device/host information endpoints
+
+**Scope Details:**
+- **ASPM Viewer Read**: Enables querying ASPM deployments, services, and interfaces via `/aspm-api-gateway/api/v1/query`
+- **Devices Read**: Enables querying Falcon endpoint data via `/devices/queries/devices/v1` and `/devices/entities/devices/v2`
+
+**Creating API Credentials:**
+1. Log into your CrowdStrike Falcon console
+2. Navigate to **Support and resources** → **API Clients & Keys**
+3. Click **Add new API client**
+4. Select the required scopes: `aspm-viewer:read` and `devices:read`
+5. Save the Client ID and Secret for use with the script
 
 ### Installation
 ```bash
@@ -234,6 +253,26 @@ python3 aspm_host_iterator.py --hosts-file incident_hosts.txt
 ❌ Error: Missing credentials
 ```
 **Solution**: Set `FALCON_CLIENT_ID` and `FALCON_CLIENT_SECRET` environment variables
+
+### API Scope Issues
+```bash
+❌ 403 Forbidden - Insufficient permissions
+```
+**Solution**: Ensure your API client has the required scopes:
+- `aspm-viewer:read` for ASPM data access
+- `devices:read` for Falcon device information
+
+**To check/update scopes:**
+1. Go to Falcon Console → **API Clients & Keys**
+2. Find your API client and click **Edit**
+3. Verify both required scopes are selected
+4. Save changes and regenerate credentials if needed
+
+### ASPM Access Issues
+```bash
+❌ Error: No ASPM data available
+```
+**Solution**: Ensure ASPM is enabled in your CrowdStrike environment and your client has ASPM access permissions
 
 ### No Services Found
 ```bash
