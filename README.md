@@ -26,18 +26,18 @@ Discover and correlate ALL hosts from CrowdStrike ASPM with complete Falcon inte
 When creating your CrowdStrike API Client ID, ensure it has the following scopes:
 
 **Required Scopes:**
-- `aspm-viewer:read` - Access to ASPM query endpoints for service discovery
-- `devices:read` - Access to Falcon device/host information endpoints
+- **ASPM Read-Only** - Access to ASPM query endpoints for service discovery
+- **Hosts** - Access to Falcon device/host information endpoints
 
 **Scope Details:**
-- **ASPM Viewer Read**: Enables querying ASPM deployments, services, and interfaces via `/aspm-api-gateway/api/v1/query`
-- **Devices Read**: Enables querying Falcon endpoint data via `/devices/queries/devices/v1` and `/devices/entities/devices/v2`
+- **ASPM Read-Only**: Enables querying ASPM deployments, services, and interfaces via `/aspm-api-gateway/api/v1/query`
+- **Hosts**: Enables querying Falcon endpoint data via `/devices/queries/devices/v1` and `/devices/entities/devices/v2`
 
 **Creating API Credentials:**
 1. Log into your CrowdStrike Falcon console
 2. Navigate to **Support and resources** → **API Clients & Keys**
 3. Click **Add new API client**
-4. Select the required scopes: `aspm-viewer:read` and `devices:read`
+4. Select the required scopes: **ASPM Read-Only** and **Hosts**
 5. Save the Client ID and Secret for use with the script
 
 ### Installation
@@ -259,8 +259,8 @@ python3 aspm_host_iterator.py --hosts-file incident_hosts.txt
 ❌ 403 Forbidden - Insufficient permissions
 ```
 **Solution**: Ensure your API client has the required scopes:
-- `aspm-viewer:read` for ASPM data access
-- `devices:read` for Falcon device information
+- **ASPM Read-Only** for ASPM data access
+- **Hosts** for Falcon device information
 
 **To check/update scopes:**
 1. Go to Falcon Console → **API Clients & Keys**
