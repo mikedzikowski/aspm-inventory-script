@@ -48,6 +48,9 @@ cd aspm-host-iterator
 # Set your CrowdStrike credentials
 export FALCON_CLIENT_ID="your_client_id"
 export FALCON_CLIENT_SECRET="your_client_secret"
+
+# Optional: Set custom API endpoint (defaults to US Commercial)
+export FALCON_BASE_URL="https://api.crowdstrike.com"
 ```
 
 ## 🚀 Usage
@@ -163,9 +166,31 @@ python3 aspm_host_iterator.py --help
 
 ### Custom API Endpoint
 ```bash
-# For EU customers
+# US Commercial (default)
+python3 aspm_host_iterator.py
+
+# EU customers
 export FALCON_BASE_URL="https://api.eu-1.crowdstrike.com"
 python3 aspm_host_iterator.py
+
+# US Government Cloud
+export FALCON_BASE_URL="https://api.laggar.gcw.crowdstrike.com"
+python3 aspm_host_iterator.py
+
+# Other regions (check CrowdStrike documentation)
+export FALCON_BASE_URL="https://api.your-region.crowdstrike.com"
+python3 aspm_host_iterator.py
+```
+
+**Supported CrowdStrike Cloud Regions:**
+- **US Commercial**: `https://api.crowdstrike.com` (default)
+- **EU**: `https://api.eu-1.crowdstrike.com`
+- **US Government**: `https://api.laggar.gcw.crowdstrike.com`
+- **Custom/Regional**: Set `FALCON_BASE_URL` to your specific endpoint
+
+The script will display which endpoint it's using:
+```
+🌐 Using CrowdStrike API endpoint: https://api.eu-1.crowdstrike.com
 ```
 
 ## 📊 Key Improvements
@@ -195,6 +220,7 @@ aspm-host-iterator/
 ## 🛡️ Security & Compliance
 
 - ✅ **No Hardcoded Credentials** - Uses environment variables only
+- ✅ **Flexible API Endpoints** - Supports all CrowdStrike cloud regions via `FALCON_BASE_URL`
 - ✅ **API-Authoritative Data** - No heuristic calculations that could be gamed
 - ✅ **Complete Audit Trail** - Full correlation between ASPM and Falcon
 - ✅ **Risk-Based Classification** - Uses CrowdStrike ASPM risk assessment
@@ -253,6 +279,23 @@ python3 aspm_host_iterator.py --hosts-file incident_hosts.txt
 ❌ Error: Missing credentials
 ```
 **Solution**: Set `FALCON_CLIENT_ID` and `FALCON_CLIENT_SECRET` environment variables
+
+### Wrong API Region
+```bash
+❌ Authentication failed: HTTP Error 403: Forbidden
+```
+**Solution**: If credentials are correct, you may be using the wrong API endpoint. Try:
+```bash
+# For EU customers
+export FALCON_BASE_URL="https://api.eu-1.crowdstrike.com"
+
+# For US Government customers  
+export FALCON_BASE_URL="https://api.laggar.gcw.crowdstrike.com"
+
+# Check which endpoint you're using
+python3 aspm_host_iterator.py
+# Look for: 🌐 Using CrowdStrike API endpoint: ...
+```
 
 ### API Scope Issues
 ```bash

@@ -689,13 +689,16 @@ def main():
     # Get credentials
     client_id = os.getenv('FALCON_CLIENT_ID')
     client_secret = os.getenv('FALCON_CLIENT_SECRET')
+    base_url = os.getenv('FALCON_BASE_URL', 'https://api.crowdstrike.com')
 
     if not client_id or not client_secret:
         print("❌ Missing credentials. Set FALCON_CLIENT_ID and FALCON_CLIENT_SECRET")
         sys.exit(1)
 
+    print(f"🌐 Using CrowdStrike API endpoint: {base_url}")
+
     # Run optimized version
-    iterator = ASPMHostIteratorFinal(client_id, client_secret)
+    iterator = ASPMHostIteratorFinal(client_id, client_secret, base_url)
     success = iterator.run_optimized_iteration(max_hosts=max_hosts, target_hosts=target_hosts)
     sys.exit(0 if success else 1)
 
