@@ -41,6 +41,10 @@ class ASPMHostIteratorFinal:
         self.processed_hosts = []
         self.failed_hosts = []
 
+        # Service optimization caching
+        self._all_services_cache = None
+        self._service_deployment_cache = {}
+
         # Statistics matching example structure
         self.stats = {
             'total_hosts_discovered': 0,
@@ -194,16 +198,13 @@ class ASPMHostIteratorFinal:
             print(f"❌ Optimized host discovery failed: {e}")
             return []
 
-    def get_services_for_host_optimized(self, host_id: str, hostname: str) -> List[Dict[str, Any]]:
-        """CORRECTED: Get services deployed on host using proper ASPM correlation"""
+    def _get_all_services_cached(self) -> List[Dict[str, Any]]:
+        """Get all services once and cache for efficient reuse"""
+        if self._all_services_cache is not None:
+            return self._all_services_cache
+
         try:
-            print(f"      🔍 Finding services deployed on {hostname} (ID: {host_id})")
-
-            # CORRECTED APPROACH: Find services where deployments reference this host
-            # The correlation is: deployments -> services, not services -> deployments
-            all_services = []
-
-            # Step 1: Get all services
+            print("🔄 [OPTIMIZATION] Caching all services for efficient correlation...")
             url = f"{self.base_url}/aspm-api-gateway/api/v1/query"
             payload = {
                 "query": "in:services",
@@ -221,15 +222,42 @@ class ASPMHostIteratorFinal:
             with urllib.request.urlopen(req) as response:
                 result = json.loads(response.read().decode())
 
-            services = result.get("resources", result.get("resultJson", []))
-            print(f"      📊 Checking {len(services)} total services for deployment correlation...")
+            self._all_services_cache = result.get("resources", result.get("resultJson", []))
+            print(f"   ✅ Cached {len(self._all_services_cache)} services for reuse")
+            return self._all_services_cache
 
-            # Step 2: For each service, check if it's deployed on our target host
-            for service in services:
+        except Exception as e:
+            print(f"   ❌ Error caching services: {e}")
+            return []
+
+    def get_services_for_host_optimized(self, host_id: str, hostname: str) -> List[Dict[str, Any]]:
+        """OPTIMIZED: Get services deployed on host using cached service data and efficient correlation"""
+        try:
+            print(f"      🔍 Finding services deployed on {hostname} (ID: {host_id})")
+
+            # OPTIMIZATION: Use cached services instead of fetching every time
+            all_services = self._get_all_services_cached()
+            if not all_services:
+                return []
+
+            print(f"      📊 Checking {len(all_services)} cached services for deployment correlation...")
+
+            found_services = []
+
+            # For each service, check if it's deployed on our target host
+            for service in all_services:
                 service_id = service.get('id')
                 service_name = service.get('name', 'Unknown')
 
+                # OPTIMIZATION: Check cache first to avoid redundant API calls
+                cache_key = f"{service_id}_{host_id}"
+                if cache_key in self._service_deployment_cache:
+                    if self._service_deployment_cache[cache_key]:
+                        found_services.append(self._service_deployment_cache[cache_key])
+                    continue
+
                 # Query deployments that have this service
+                url = f"{self.base_url}/aspm-api-gateway/api/v1/query"
                 dep_payload = {
                     "query": f"in:deployments AND services:(id:{service_id})",
                     "params": {
@@ -249,6 +277,7 @@ class ASPMHostIteratorFinal:
                 deployments = dep_result.get("resources", dep_result.get("resultJson", []))
 
                 # Check if any deployment matches our target host
+                service_found = False
                 for deployment in deployments:
                     dep_name = deployment.get('name', '')
                     dep_id = str(deployment.get('id', ''))
@@ -264,11 +293,18 @@ class ASPMHostIteratorFinal:
                         interfaces = self.get_interfaces_for_service_optimized(service_name)
                         enriched_service['interfaces'] = interfaces
 
-                        all_services.append(enriched_service)
+                        # Cache the result for future use
+                        self._service_deployment_cache[cache_key] = enriched_service
+                        found_services.append(enriched_service)
+                        service_found = True
                         break
 
-            print(f"      ✅ Found {len(all_services)} services deployed on {hostname}")
-            return all_services
+                # Cache negative result to avoid redundant queries
+                if not service_found:
+                    self._service_deployment_cache[cache_key] = None
+
+            print(f"      ✅ Found {len(found_services)} services deployed on {hostname}")
+            return found_services
 
         except Exception as e:
             print(f"   ❌ Error getting services for host {host_id}: {e}")
