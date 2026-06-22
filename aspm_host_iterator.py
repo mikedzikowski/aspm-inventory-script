@@ -94,17 +94,33 @@ class ASPMHostIteratorFinal:
             print(f"❌ Authentication failed: {e}")
             return False
 
-    def discover_hosts_optimized(self) -> List[Dict[str, Any]]:
-        """FINAL OPTIMIZED: Discover hosts using API-native type filtering"""
-        print("🔍 [OPTIMIZED] Discovering hosts using API-native type filtering...")
+    def discover_hosts_optimized(self, target_hosts: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        """FINAL OPTIMIZED: Discover hosts using API-native type filtering with optional hostname targeting"""
+        if target_hosts:
+            print(f"🔍 [OPTIMIZED] Discovering specific hosts using server-side filtering...")
+            print(f"   🎯 Targeting: {', '.join(target_hosts)}")
+        else:
+            print("🔍 [OPTIMIZED] Discovering hosts using API-native type filtering...")
         print("   ✅ Using type:'Machine' filter instead of pattern matching")
 
         try:
             url = f"{self.base_url}/aspm-api-gateway/api/v1/query"
 
-            # OPTIMIZED: Use type filtering instead of pattern matching
+            # Build query with optional hostname filtering
+            base_query = "in:deployments AND type:\"Machine\""
+
+            if target_hosts:
+                # Add server-side hostname filtering
+                hostname_filters = ' OR '.join([f'name:"{host}"' for host in target_hosts])
+                query = f"{base_query} AND ({hostname_filters})"
+                print(f"   🚀 Server-side filtering: {len(target_hosts)} specific hosts")
+            else:
+                query = base_query
+                print("   📊 Discovering all machines")
+
+            # OPTIMIZED: Use type filtering with optional hostname targeting
             payload = {
-                "query": "in:deployments AND type:\"Machine\"",
+                "query": query,
                 "params": {
                     "selectFields": {
                         "fields": ["*"],
@@ -533,22 +549,19 @@ class ASPMHostIteratorFinal:
         if not self.authenticate():
             return False
 
-        # Discover hosts using optimized approach
-        hosts = self.discover_hosts_optimized()
+        # Discover hosts using optimized approach with optional targeting
+        hosts = self.discover_hosts_optimized(target_hosts)
         if not hosts:
             print("❌ No hosts discovered")
             return False
 
         self.discovered_hosts = hosts
 
-        # Filter by target hosts if specified
+        # Validate targeting results (server-side filtering handles the actual filtering)
         if target_hosts:
-            original_count = len(hosts)
-            hosts = [host for host in hosts if host.get('name') in target_hosts]
-
             if not hosts:
                 print(f"❌ None of the target hosts found in ASPM")
-                print(f"   Available hosts: {', '.join([h.get('name', 'Unknown') for h in self.discovered_hosts[:10]])}")
+                print(f"   Requested: {', '.join(target_hosts)}")
                 return False
 
             found_hosts = [host.get('name') for host in hosts]
@@ -559,6 +572,8 @@ class ASPMHostIteratorFinal:
             print(f"   📋 Found: {', '.join(found_hosts)}")
             if missing_hosts:
                 print(f"   ⚠️ Missing: {', '.join(missing_hosts)}")
+        else:
+            print(f"📊 Retrieved {len(hosts)} Machine-type deployments")
 
         # Apply numeric limit if specified (after targeting)
         if max_hosts and max_hosts < len(hosts):
