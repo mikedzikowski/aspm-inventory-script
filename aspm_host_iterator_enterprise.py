@@ -17,6 +17,7 @@ import urllib.parse
 import os
 import sys
 import time
+import argparse
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
 
@@ -306,7 +307,7 @@ class ASPMHostIteratorEnterprise:
                             'riskScore': service.get('riskScore', 0),
                             'riskSeverity': service.get('riskSeverity', 'Unknown'),
                             'technology': service.get('technology', 'Unknown'),
-                            'interfaces': []  # Would be populated by interface query
+                            'interfaces': self._get_interfaces_for_service_enterprise(service_name)
                         }
 
                         self._service_deployment_cache[cache_key] = enriched_service
@@ -325,6 +326,64 @@ class ASPMHostIteratorEnterprise:
 
         except Exception as e:
             print(f"   ❌ Error getting services for {hostname}: {e}")
+            return []
+
+    def _get_interfaces_for_service_enterprise(self, service_name: str) -> List[Dict[str, Any]]:
+        """Get interfaces for a service with enterprise retry logic"""
+        try:
+            url = f"{self.base_url}/aspm-api-gateway/api/v1/query"
+            payload = {
+                "query": f"in:interfaces AND service:(name:\"{service_name}\")",
+                "params": {
+                    "selectFields": {"fields": ["*"]},
+                    "paginate": {"limit": 100, "offset": 0}
+                }
+            }
+
+            result = self._make_api_call_with_retry(url, payload, f"interfaces for {service_name}")
+            if not result:
+                return []
+
+            interfaces = result.get("resources", result.get("resultJson", []))
+
+            # Enhance interfaces with structured data
+            enhanced_interfaces = []
+            for interface in interfaces:
+                port = interface.get('port')
+                protocol = interface.get('protocol', 'HTTP')
+                path = interface.get('path', '/unknown')
+
+                # Infer HTTPS from common secure ports
+                if port in [443, 8443, 9443] or (isinstance(port, str) and port in ['443', '8443', '9443']):
+                    protocol = 'HTTPS'
+
+                # Detect schema based on path or use HTTPS as secure default
+                schema = "https"  # Default to HTTPS for security
+                if path.startswith('http://'):
+                    schema = "http"
+                elif path.startswith('https://'):
+                    schema = "https"
+                elif any(keyword in path.lower() for keyword in ['metrics', 'health', 'status']):
+                    schema = "http"  # Health/metrics often use HTTP
+
+                enhanced_interface = {
+                    'id': interface.get('id'),
+                    'path': path,
+                    'method': interface.get('method', 'GET'),
+                    'type': interface.get('type', 'HTTP'),
+                    'schema': schema,
+                    'technology': interface.get('technology', 'Unknown'),
+                    'port': port,
+                    'protocol': protocol,
+                    'riskScore': interface.get('riskScore', 0),
+                    'riskSeverity': interface.get('riskSeverity', 'Unknown')
+                }
+                enhanced_interfaces.append(enhanced_interface)
+
+            return enhanced_interfaces
+
+        except Exception as e:
+            print(f"   ❌ Error getting interfaces for service {service_name}: {e}")
             return []
 
     def _get_all_services_cached_enterprise(self) -> List[Dict[str, Any]]:
@@ -601,6 +660,40 @@ class ASPMHostIteratorEnterprise:
 
 
 if __name__ == "__main__":
+    # Parse command line arguments first (allows --help without credentials)
+    parser = argparse.ArgumentParser(description='ASPM Enterprise Host Iterator with advanced targeting')
+    parser.add_argument('limit', nargs='?', type=int, help='Limit number of hosts to process (for testing)')
+    parser.add_argument('--hosts', nargs='+', help='Target specific hostnames (space-separated)')
+    parser.add_argument('--hosts-file', help='File containing hostnames (one per line)')
+
+    # Handle legacy numeric argument
+    target_hosts = None
+    max_hosts = None
+
+    if len(sys.argv) > 1 and sys.argv[1].isdigit():
+        # Legacy mode: python3 script.py 5
+        max_hosts = int(sys.argv[1])
+        target_hosts = None
+    else:
+        # New argument parsing (this handles --help)
+        args = parser.parse_args()
+        max_hosts = args.limit
+
+        # Get target hosts from command line arguments
+        if args.hosts:
+            target_hosts = args.hosts
+            print(f"🎯 Targeting specific hosts: {', '.join(target_hosts)}")
+
+        # Get target hosts from file
+        elif args.hosts_file:
+            try:
+                with open(args.hosts_file, 'r') as f:
+                    target_hosts = [line.strip() for line in f if line.strip()]
+                print(f"🎯 Targeting hosts from file '{args.hosts_file}': {', '.join(target_hosts)}")
+            except Exception as e:
+                print(f"❌ Error reading hosts file '{args.hosts_file}': {e}")
+                sys.exit(1)
+
     # Get credentials
     client_id = os.getenv('FALCON_CLIENT_ID')
     client_secret = os.getenv('FALCON_CLIENT_SECRET')
@@ -616,19 +709,9 @@ if __name__ == "__main__":
     print("🔧 Enterprise features: Token refresh, batch processing, retry logic")
     print()
 
-    # Parse command line arguments (simplified)
-    target_hosts = None
-    if len(sys.argv) > 1:
-        if sys.argv[1] == '--hosts' and len(sys.argv) > 2:
-            target_hosts = sys.argv[2:]
-        elif not sys.argv[1].startswith('--'):
-            try:
-                max_hosts = int(sys.argv[1])
-                print(f"🎯 Limited to {max_hosts} hosts")
-            except ValueError:
-                target_hosts = sys.argv[1:]
-
-    if target_hosts:
+    if max_hosts:
+        print(f"🎯 Limited to {max_hosts} hosts")
+    elif target_hosts:
         print(f"🎯 Targeting {len(target_hosts)} specific hosts")
 
     # Run enterprise iteration
