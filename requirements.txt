@@ -1,0 +1,4 @@
+# No third-party dependencies.
+#
+# Both scripts use only the Python standard library (urllib, json, argparse,
+# collections, os, sys, time) and require Python 3.7+.

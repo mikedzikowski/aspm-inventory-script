@@ -1,0 +1,42 @@
+# Script output — may contain real tenant ids, account ids, hostnames
+*.json
+
+# Local git backups / bundles — may contain removed-but-historical secrets
+*.bundle
+*.tar.gz
+
+# Assistant session history
+.remember/
+
+# Credentials — never commit
+.env
+.envrc
+*.pem
+*.key
+credentials
+secrets.*
+
+# Directories to ignore
+docs/
+results/
+
+# Temporary files
+*.tmp
+*.log
+
+# IDE files
+.vscode/
+.idea/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+venv/
+env/
+
+# OS files
+.DS_Store
+Thumbs.db
